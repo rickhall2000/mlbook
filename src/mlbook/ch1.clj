@@ -36,3 +36,43 @@ A2
 
 (cl/map-indexed
  (fn [i j m] (* m 2)) A2)
+
+;; Generating Matrices
+
+(defn square-mat' [n e]
+  (let [repeater #(repeat n %)]
+    (matrix (-> e repeater repeater))))
+
+(defn square-mat
+  [n e & {:keys [implementation]
+          :or {implementation
+               :persistent-vector}}]
+  (let [repeater #(repeat n %)]
+    (matrix implementation (-> e repeater repeater))))
+
+(defn id-mat [n]
+  (let [init (square-mat n 0 :implementation :clatrix)
+        identity-f (fn [i j n]
+                     (if (= i j) 1 n))]
+    (cl/map-indexed identity-f init)))
+
+(defn rand-square-mat [n]
+  (matrix
+   (repeatedly n #(map rand-int (repeat n 100)))))
+
+(defn rand-square-clmat [n]
+  (cl/map rand-int (square-mat n 100 :implementation :clatrix)))
+
+(cl/rnorm 10 25 10 10)
+(cl/rnorm 5)
+(cl/rnorm 3 4)
+
+(defn id-computed-mat [n]
+  (compute-matrix [n n] #(if (= %1 %2) 1 0)))
+
+(defn rand-computed-mat [n m]
+  (compute-matrix [n m]
+                  (fn [i j] (rand-int 100))))
+
+(compute-matrix :clatrix [3 4]
+                (fn [i j] (if (= i j) 1 0)))
