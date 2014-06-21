@@ -1,6 +1,7 @@
 (ns ch1
   (:require [clojure.core.matrix :refer :all]
-            [clatrix.core :as cl]))
+            [clatrix.core :as cl]
+            [clojure.core.matrix.operators :as M]))
 
 ;; representing matricies
 (matrix [[0 1 2] [3 4 5]])
@@ -76,3 +77,53 @@ A2
 
 (compute-matrix :clatrix [3 4]
                 (fn [i j] (if (= i j) 1 0)))
+
+;; Adding matrices
+
+(def A (matrix [[0 1 2] [3 4 5]]))
+(def B (matrix [[0 0 0] [0 0 0]]))
+(M/== B A)
+
+(def C (M/+ A B))
+(M/== C A)
+
+(defn mat-eq [A B]
+  (and (= (count A) (count B))
+       (reduce #(and %1 %2) (map = A B))))
+
+(defn mat-add [A B]
+  (mapv #(mapv + %1 %2) A B))
+
+(defn mat-add
+  ([A B]
+     (mapv #(mapv + %1 %2) A B))
+  ([A B & more]
+     (let [M (concat [A B more])]
+       (reduce mat-add M))))
+
+(def X (concat [A B] [C A] ))
+(reduce mat-add X)
+X
+
+;; Multiplying matrices
+(def A (matrix [[1 2 3] [4 5 6]]))
+(def B (matrix [[10 20] [20 30] [30 40]]))
+(def C (matrix [[11 12] [13 14]]))
+(def N 10)
+
+(pm A)
+(pm B)
+(shape A)
+(shape B)
+(shape (mmul A B))
+(mmul A B)
+(mmul B C)
+(mmul C A)
+
+(defn time-mat-mul [A B]
+  (time (mmul A B)))
+
+(time-mat-mul (rand-square-mat 100) (rand-square-mat 100))
+(time-mat-mul (rand-square-clmat 100) (rand-square-clmat 100))
+
+(pm (scale A 10))
