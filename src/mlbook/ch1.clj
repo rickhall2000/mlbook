@@ -1,7 +1,9 @@
 (ns ch1
   (:require [clojure.core.matrix :refer :all]
             [clatrix.core :as cl]
-            [clojure.core.matrix.operators :as M]))
+            [clojure.core.matrix.operators :as M]
+            [incanter.charts :refer [xy-plot add-points]]
+            [incanter.core :refer [view]]))
 
 ;; representing matricies
 (matrix [[0 1 2] [3 4 5]])
@@ -127,3 +129,57 @@ X
 (time-mat-mul (rand-square-clmat 100) (rand-square-clmat 100))
 
 (pm (scale A 10))
+
+;; Transposing and inverting matrices
+(def A (matrix [[1 2 3] [4 5 6]]))
+(pm (transpose A))
+
+(def A (cl/matrix [[2 0] [0 2]]))
+(mmul (inverse A) A)
+
+(def A (cl/matrix [[1 2] [3 4]]))
+(inverse A)
+
+(def A (cl/matrix [[-2 2 3] [-1 1 3] [2 0 -1]]))
+
+(det A)
+
+;; Interpolating using matrices
+(defn lmatrix [n]
+  (compute-matrix :clatrix [n (+ n 2)]
+                  (fn [i j] ({0 -1 1 2 2 -1}
+                            (- j i) 0))))
+
+(pm (lmatrix 4))
+
+(defn problem [n n-observed lambda]
+  (let [i (shuffle (range n))]
+    {:L (mmul (lmatrix n) lambda)
+     :observed (take n-observed i)
+     :hidden (drop n-observed i)
+     :observed-values (matrix :clatrix
+                              (repeatedly n-observed rand))}))
+
+(defn solve
+  [{:keys [L observed hidden observed-values]
+    :as problem}]
+  (let [nc (column-count L)
+        nr (row-count L)
+        L1 (cl/get L (range nr) hidden)
+        L2 (cl/get L (range nr) observed)
+        l11 (mmul (transpose L1) L1)
+        l12 (mmul (transpose L1) L2)]
+    (assoc problem :hidden-values
+           (mmul -1 (inverse l11) l12 observed-values))))
+
+(defn plot-points [s]
+  (let [X (concat (:hidden s) (:observed s))
+        Y (concat (:hidden-values s) (:observed-values s))]
+    (view
+     (add-points
+      (xy-plot X Y) (:observed s) (:observed-values s)))))
+
+(defn plot-rand-sample []
+  (plot-points (solve (problem 150 10 30))))
+
+#_(plot-rand-sample)
