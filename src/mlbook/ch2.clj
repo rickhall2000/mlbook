@@ -1,7 +1,9 @@
 (ns mlbook.ch2
-  (:require [incanter.charts :refer [scatter-plot add-lines]]
-            [incanter.core :refer [view]]
+  (:require [incanter.charts :refer [scatter-plot add-lines xy-plot]]
+            [incanter.core :refer [view sel to-matrix bind-columns]]
             [incanter.stats :refer [linear-model]]
+            [incanter.datasets :refer [get-dataset]]
+            [clojure.core.matrix :refer :all]
             [clatrix.core :as cl]))
 
 (def X (cl/matrix [8.401 14.475 13.396 12.127 5.044
@@ -43,3 +45,46 @@
       (if (< dx gradient-descent-precision)
         x-new
         (recur x-new)))))
+
+;; Multivariable linear regression
+(def iris
+  (to-matrix (get-dataset :iris)))
+
+(def X (sel iris :cols (range 1 5)))
+(def Y (sel iris :cols 0))
+
+(def iris-linear-model
+  (linear-model Y X))
+
+(defn plot-iris-linear-model []
+  (let [x (range -100 100)
+        y (:fitted iris-linear-model)]
+    (view (xy-plot x y :x-label "X"
+                   :y-label "Y"))))
+
+(plot-iris-linear-model)
+
+;; Understanding OLS
+
+(defn linear-model-ols
+  [MX MY]
+  (let [X (bind-columns (repeat (row-count
+                                 MX) 1) MX)
+        Xt (cl/matrix (transpose X))
+        Xt-X (cl/* Xt X)]
+    (cl/* (inverse Xt-X) Xt MY)))
+
+(def ols-linear-model
+  (linear-model-ols X Y))
+
+(def ols-linear-model-coefs
+  (cl/as-vec ols-linear-model))
+
+(cl/as-vec ols-linear-model)
+
+(:coefs iris-linear-model)
+
+(every? #(< % 0.001)
+          (map -
+               ols-linear-model-coefs
+               (:coefs iris-linear-model)))
